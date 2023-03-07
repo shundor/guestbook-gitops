@@ -44,14 +44,6 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: debug
-      env:
-        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        REPOSITORY: guestbook
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        echo $REGISTRY/$REPOSITORY:$IMAGE_TAG
-
     - name: Build, tag, and push docker image to Amazon ECR
       env:
         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -69,10 +61,14 @@ jobs:
           kustomize edit set image $REGISTRY/$REPOSITORY:$IMAGE_TAG
           cat kustomization.yaml
     - name: Commit kustomization
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: guestbook
+        IMAGE_TAG: ${{ github.sha }}    
       run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -a -m "$REPOSITORY:$IMAGE_TAG"
+          git commit -a -m "Commit kustomization $REPOSITORY:$IMAGE_TAG"
     - name: Push changes to master
       uses: ad-m/github-push-action@master
       with:
@@ -85,6 +81,10 @@ jobs:
     # Only push to registry on master
     - name: Push
       if: github.ref == 'refs/heads/master'
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REPOSITORY: guestbook
+        IMAGE_TAG: ${{ github.sha }}   
       run: |
         # Push image to AWS ECR
         docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
